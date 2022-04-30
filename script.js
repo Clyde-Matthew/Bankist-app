@@ -1,455 +1,722 @@
 'use strict';
 
-const accountA = {
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// BANKIST APP
+
+/////////////////////////////////////////////////
+// Data
+
+// DIFFERENT DATA! Contains movement dates, currency and locale
+
+const account1 = {
   owner: 'Jonas Schmedtmann',
-  movements: [200, 450, -400, 3000, -650, -130, 70, 1300],
+  movements: [200, 455.23, -306.5, 25000, -642.21, -133.9, 79.97, 1300],
   interestRate: 1.2, // %
   pin: 1111,
+
+  movementsDates: [
+    '2019-11-18T21:31:17.178Z',
+    '2019-12-23T07:42:02.383Z',
+    '2020-01-28T09:15:04.904Z',
+    '2020-04-01T10:17:24.185Z',
+    '2022-01-17T14:11:59.604Z',
+    '2022-01-20T17:01:17.194Z',
+    '2022-01-22T23:36:17.929Z',
+    '2022-01-25T10:51:36.790Z',
+  ],
+  currency: 'EUR',
+  locale: 'pt-PT', // de-DE
 };
 
-const accountB = {
+const account2 = {
   owner: 'Jessica Davis',
   movements: [5000, 3400, -150, -790, -3210, -1000, 8500, -30],
   interestRate: 1.5,
   pin: 2222,
+
+  movementsDates: [
+    '2019-11-01T13:15:33.035Z',
+    '2019-11-30T09:48:16.867Z',
+    '2019-12-25T06:04:23.907Z',
+    '2020-01-25T14:18:46.235Z',
+    '2020-02-05T16:33:06.386Z',
+    '2020-04-10T14:43:26.374Z',
+    '2020-06-25T18:49:59.371Z',
+    '2020-07-26T12:01:20.894Z',
+  ],
+  currency: 'USD',
+  locale: 'en-US',
 };
 
-const accountC = {
-  owner: 'Steven Thomas Williams',
-  movements: [200, -200, 340, -300, -20, 50, 400, -460],
-  interestRate: 0.7,
-  pin: 3333,
+const accounts = [account1, account2];
+
+/////////////////////////////////////////////////
+// Elements
+const labelWelcome = document.querySelector('.welcome');
+const labelDate = document.querySelector('.date');
+const labelBalance = document.querySelector('.balance__value');
+const labelSumIn = document.querySelector('.summary__value--in');
+const labelSumOut = document.querySelector('.summary__value--out');
+const labelSumInterest = document.querySelector('.summary__value--interest');
+const labelTimer = document.querySelector('.timer');
+
+const containerApp = document.querySelector('.app');
+const containerMovements = document.querySelector('.movements');
+
+const btnLogin = document.querySelector('.login__btn');
+const btnTransfer = document.querySelector('.form__btn--transfer');
+const btnLoan = document.querySelector('.form__btn--loan');
+const btnClose = document.querySelector('.form__btn--close');
+const btnSort = document.querySelector('.btn--sort');
+
+const inputLoginUsername = document.querySelector('.login__input--user');
+const inputLoginPin = document.querySelector('.login__input--pin');
+const inputTransferTo = document.querySelector('.form__input--to');
+const inputTransferAmount = document.querySelector('.form__input--amount');
+const inputLoanAmount = document.querySelector('.form__input--loan-amount');
+const inputCloseUsername = document.querySelector('.form__input--user');
+const inputClosePin = document.querySelector('.form__input--pin');
+
+/////////////////////////////////////////////////
+// Functions
+// LEC 16)
+// 1.
+const startLogOutTimer = function () {
+  // 3.
+  // There is always this 1s delay after the app loads and the start of the timer. And also between logins. So let's export the timer callback into its own function, and run it right away
+  const tick = function () {
+    let minutes = String(parseInt(time / 60, 10)).padStart(2, '0');
+    let seconds = String(parseInt(time % 60, 10)).padStart(2, '0');
+    // console.log(minutes, seconds);
+
+    // Displaying time in element and clock
+    labelTimer.textContent = `${minutes}:${seconds}`;
+
+    // Finish timer
+    if (time === 0) {
+      // We need to finish the timer, otherwise it will run forever
+      clearInterval(timer);
+
+      // We log out the user, which means to fade out the app
+      containerApp.style.opacity = 0;
+      labelWelcome.textContent = 'Log in to get started';
+    }
+
+    // Subtract 1 second from time for the next iteration
+    time--;
+  };
+
+  // Setting time to 5 minutes in seconds
+  let time = 5 * 60;
+  // let time = 10;
+
+  tick();
+  const timer = setInterval(tick, 1000);
+
+  // LATER
+  return timer;
 };
 
-const accountD = {
-  owner: 'Sarah Smith',
-  movements: [430, 1000, 700, 50, 90],
-  interestRate: 1,
-  pin: 4444,
+const printWelcome = function (name) {
+  const now = new Date();
+  const greetings = new Map([
+    [[6, 7, 8, 9, 10], 'Good Morning'],
+    [[11, 12, 13, 14], 'Good Day'],
+    [[15, 16, 17, 18], 'Good Afternoon'],
+    [[19, 20, 21, 22], 'Good Evening'],
+    [[23, 0, 1, 2, 3, 4, 5], 'Good Night'],
+  ]);
+
+  const arr = [...greetings.keys()].find(key => key.includes(now.getHours()));
+  const greet = greetings.get(arr);
+  labelWelcome.textContent = `${greet}, ${name}!`;
 };
 
-const accounts2 = [accountA, accountB, accountC, accountD];
+// LEC 9)
+// 2.
+const formatMovementDate = function (date, locale) {
+  // LEC 12) add locale
+  const calcDaysPassed = (date1, date2) =>
+    Math.round((date1 - date2) / (60 * 60 * 24 * 1000));
+  const now = new Date();
+  const daysPassed = calcDaysPassed(now, date);
 
-const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
-// LECTURES
-
-// const currencies = new Map([
-//   ['USD', 'United States dollar'],
-//   ['EUR', 'Euro'],
-//   ['GBP', 'Pound sterling'],
-// ]);
-
-// /////////////////////////////////////////////////
-// // array methods
-let arr = ['a', 'b', 'c', 'd', 'e'];
-
-// // slice method to extract parts of an array (like strings)
-console.log(arr.slice(2));
-console.log(arr.slice(2, 4));
-console.log(arr.slice(-2));
-console.log(arr.slice(-1));
-console.log(arr.slice(1, -1));
-
-// // create a shallow copy of any array ( no arguments)
-console.log(arr.slice());
-// // spread operator also works to make a copy ( use slice for multiple methods)
-console.log([...arr]);
-
-// Splice method ( mutates original array) --- use case is to delete values from original array ((first element, how many to delete))
-// console.log(arr.splice(-1));
-console.log(arr);
-arr.splice(1, 2);
-console.log(arr);
-console.log(arr.splice(2));
-console.log(arr);
-
-// Reverse ( mutates original array like splice)
-arr = ['a', 'b', 'c', 'd', 'e'];
-const arr2 = ['j', 'i', 'h', 'g', 'f'];
-console.log(arr2.reverse());
-console.log(arr2);
-
-// Concat method (doesn't mutate original array)
-const letters = arr.concat(arr2);
-console.log(letters);
-// could also use the spread operator same result
-console.log([...arr, ...arr2]);
-
-// // Join method (joins to create a string seperated by defined operator)
-console.log(letters.join(' - '));
-
-// // array methods also include -- push,shift, unshift, pop, indexof , includes
-
-const arr3 = [23, 11, 64];
-console.log(arr3[0]);
-// AT Method (also works on strings)
-console.log(arr3.at(-1));
-console.log(arr3.at(1));
-
-// Loop over a array using for each loop
-// LECTURES
-
-// const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
-
-// for of Loop
-// math method to take away the sign
-//  when using the forof method .entries() use index first then current element
-for (const [i, movement] of movements.entries()) {
-  if (movement > 0) {
-    console.log(`Movement ${i + 1}: You deposited ${movement}`);
-  } else {
-    console.log(`Movement ${i + 1}: You withdrew ${Math.abs(movement)}`);
+  if (daysPassed === 0) return 'Today';
+  if (daysPassed === 1) return 'Yesterday';
+  if (daysPassed <= 7) return `${daysPassed} days ago`;
+  else {
+    return new Intl.DateTimeFormat(locale).format(date);
   }
-}
+};
 
-// console.log(`--------FOR EACH---------`);
-// // ForEach Method (better to use) = continue and break statements do NOT work in the forEach loop - creates "side effects"
+const formatCur = function (value, locale, currency) {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currency,
+  }).format(value);
+};
 
-// //must always be in this order - val , index , array
-// movements.forEach(function (val, i, a) {
-//   if (val > 0) {
-//     console.log(`Movement ${i + 1}: You deposited ${val}`);
+// LEC 8)
+// const printMovements = function(movements) {
+const printMovements = function (account, sort = false) {
+  containerMovements.innerHTML = '';
+
+  const mov = sort
+    ? account.movements.slice().sort((a, b) => a - b)
+    : account.movements;
+
+  mov.forEach((mov, i) => {
+    const type = mov > 0 ? 'deposit' : 'withdrawal';
+
+    // LEC 8)
+    let printDate = '';
+    if (account.movementsDates) {
+      const date = new Date(account.movementsDates[i]);
+
+      // LEC 9)
+      printDate = formatMovementDate(date, account.locale);
+      // const day = `${date.getDate()}`.padStart(2, '0');
+      // // Remember that MONTHS are 0-based!
+      // const month = `${date.getMonth() + 1}`.padStart(2, '0');
+      // const year = date.getFullYear();
+      // printDate = `${day}/${month}/${year}`;
+    }
+
+    // LEC 14)
+    // Now we can finally use the user's locale and account currency!
+    // const formattedMov = new Intl.NumberFormat(account.locale, {
+    //   style: 'currency',
+    //   currency: account.currency,
+    //   // currency: 'USD',
+    // }).format(mov);
+    const formattedMov = formatCur(mov, account.locale, account.currency);
+
+    // LEC 4) + 14)
+    // <div class="movements__value">${mov.toFixed(2)}€</div>
+    const html = `
+      <div class="movements__row">
+        <div class="movements__type movements__type--${type}">${
+      i + 1
+    } ${type}</div>
+        <div class="movements__date">${printDate}</div>
+        <div class="movements__value">${formattedMov}</div>
+      </div>
+    `;
+    containerMovements.insertAdjacentHTML('afterbegin', html);
+  });
+};
+// printMovements(account1.movements);
+printMovements(account1);
+
+const createUsernames = function (accounts) {
+  accounts.forEach(acc => {
+    acc.username = acc.owner
+      .toLowerCase()
+      .split(' ')
+      .map(name => name[0])
+      .join('');
+  });
+};
+createUsernames(accounts);
+
+// LEC 14)
+// const calcPrintBalance = function(movements) {
+const calcPrintBalance = function (account) {
+  const balance = account.movements.reduce((accum, cur) => accum + cur, 0);
+  currentAccount.balance = balance;
+
+  // LEC 4)
+  // labelBalance.textContent = `${balance}€`;
+  // labelBalance.textContent = `${balance.toFixed(2)}€`;
+
+  // LEC 14)
+  labelBalance.textContent = formatCur(
+    balance,
+    account.locale,
+    account.currency,
+  );
+};
+
+const calcPrintSummary = function (account) {
+  const incomes = account.movements
+    .filter(mov => mov > 0)
+    .reduce((acc, cur) => acc + cur, 0);
+  // LEC 4) The .20 looks a lot nicer that the .2 we had before
+  // labelSumIn.textContent = `${incomes.toFixed(2)}€`;
+
+  // LEC 14)
+  labelSumIn.textContent = formatCur(incomes, account.locale, account.currency);
+
+  const out = account.movements
+    .filter(mov => mov < 0)
+    .reduce((acc, cur) => acc + cur, 0);
+  // LEC 4)
+  // labelSumOut.textContent = `${Math.abs(out).toFixed(2)}€`;
+
+  // LEC 14)
+  labelSumOut.textContent = formatCur(
+    Math.abs(out),
+    account.locale,
+    account.currency,
+  );
+
+  const interest = account.movements
+    .filter(mov => mov > 0)
+    .map(mov => mov * (currentAccount.interestRate / 100))
+    .filter(int => int > 1)
+    .reduce((acc, cur) => acc + cur, 0);
+  // LEC 4)
+  // labelSumInterest.textContent = `${interest.toFixed(2)}€`;
+
+  // LEC 14)
+  labelSumInterest.textContent = formatCur(
+    interest,
+    account.locale,
+    account.currency,
+  );
+};
+
+//////////////////////////////////////////////////////////////////
+let currentAccount, timer;
+
+btnLogin.addEventListener('click', function (e) {
+  e.preventDefault();
+
+  currentAccount = accounts.find(
+    acc => acc.username === inputLoginUsername.value,
+  );
+
+  if (currentAccount && currentAccount.pin === +inputLoginPin.value) {
+    console.log(currentAccount);
+
+    // Reset input fields
+    inputLoginUsername.value = inputLoginPin.value = '';
+    inputLoginPin.blur();
+
+    // Log in!
+    containerApp.style.opacity = 100;
+
+    // LEC 16)
+    // 2.
+    // If there is already a timer, then cancel it!
+    if (timer) clearInterval(timer);
+
+    // 1.
+    // Start 5 minutes timer to log out user automatically)
+    timer = startLogOutTimer();
+
+    // 2.
+
+    // Print welcome message
+    // LEC 10)
+    // labelWelcome.textContent = `Welcome back, ${
+    //   currentAccount.owner.split(' ')[0]
+    // }!`;
+    printWelcome(`${currentAccount.owner.split(' ')[0]}`);
+
+    // LEC 12)
+    // 1.
+    // Set current date and time!
+    const now = new Date();
+    const options = {
+      day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    };
+    labelDate.textContent = new Intl.DateTimeFormat(
+      currentAccount.locale,
+      options,
+    ).format(now);
+
+    // Test with JD first, then with JS
+
+    // Print movements
+    // LEC 8)
+    printMovements(currentAccount);
+
+    // LEC 14)
+    // Print balance
+    calcPrintBalance(currentAccount);
+
+    // Print summary
+    calcPrintSummary(currentAccount);
+  }
+});
+
+btnTransfer.addEventListener('click', function (e) {
+  e.preventDefault();
+
+  const receiver = accounts.find(acc => acc.username === inputTransferTo.value);
+  const amount = +inputTransferAmount.value;
+
+  if (
+    receiver &&
+    amount &&
+    currentAccount.balance >= amount &&
+    receiver.username !== currentAccount.username
+  ) {
+    currentAccount.movements.push(-amount);
+    receiver.movements.push(amount);
+
+    // LEC 8)
+    // 3.
+    currentAccount.movementsDates.push(new Date());
+    receiver.movementsDates.push(new Date());
+
+    // LEC 8)
+    printMovements(currentAccount);
+
+    // LEC 14)
+    calcPrintBalance(currentAccount);
+    calcPrintSummary(currentAccount);
+    clearInterval(timer);
+    timer = startLogOutTimer();
+  }
+
+  inputTransferTo.value = inputTransferAmount.value = '';
+});
+
+btnLoan.addEventListener('click', function (e) {
+  e.preventDefault();
+
+  const amount = Math.floor(+inputLoanAmount.value);
+
+  if (currentAccount.movements.some(mov => mov >= amount / 10) && amount > 0) {
+    currentAccount.movements.push(amount);
+
+    // LEC 8)
+    // 3.
+    currentAccount.movementsDates.push(new Date());
+
+    // LEC 15)
+    // 5.
+    setTimeout(() => {
+      // LEC 8)
+      printMovements(currentAccount);
+
+      // LEC 14)
+      calcPrintBalance(currentAccount);
+      calcPrintSummary(currentAccount);
+    }, 2500);
+
+    // LEC 16)
+    // 4.
+    clearInterval(timer);
+    timer = startLogOutTimer();
+  }
+  inputLoanAmount.value = '';
+});
+
+btnClose.addEventListener('click', function (e) {
+  e.preventDefault();
+
+  if (
+    inputCloseUsername.value === currentAccount.username &&
+    +inputClosePin.value === currentAccount.pin
+  ) {
+    const index = accounts.findIndex(
+      acc => acc.username === currentAccount.username,
+    );
+
+    accounts.splice(index, 1);
+    containerApp.style.opacity = 0;
+  }
+
+  inputCloseUsername.value = inputClosePin.value = '';
+});
+
+let sorted = false;
+btnSort.addEventListener('click', function () {
+  printMovements(currentAccount, !sorted);
+
+  // if (!sorted) {
+  //   printMovements(currentAccount.movements.slice().sort((a, b) => a - b));
+  // } else {
+  //   printMovements(currentAccount);
+  // }
+  sorted = !sorted;
+});
+
+// let sorted = false;
+// btnSort.addEventListener('click', function () {
+//   if (!sorted) {
+//     // We need to create a copy, otherwise the original array will be mutated, and we don't want that
+//     printMovements(currentAccount.movements.slice().sort((a, b) => a - b));
+//     // Here, for example, I'm using slice and not ... because I'm in the middle of a chain here, and so it's more useful to just keep chaining
 //   } else {
-//     console.log(`Movement ${i + 1}: You withdrew ${Math.abs(val)}`);
+//     printMovements(currentAccount.movements);
 //   }
+//   // We need to flip sorted, so that in the next click, the opposite happens
+//   sorted = !sorted;
+// });
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// LECTURES
+
+// console.log(23 === 23.0);
+
+// // Base 10 - 0 to 9 - 1/10 = 0.1 3/10 = 3.333333333333
+// // Binary = base 2 - 0 and 1
+// console.log(0.1 + 0.2);
+// console.log(0.1 + 0.2 === 0.3);
+
+// // Conversion
+// console.log(Number('23'));
+// console.log(+'23');
+
+// // Parsing - (accepts second argument called the radix - eg base 10)
+// console.log(Number.parseInt('30px', 10));
+// console.log(Number.parseFloat('e23', 10));
+
+// console.log(Number.parseInt(' 2.5rem '));
+// console.log(Number.parseFloat(' 2.5rem '));
+
+// // check to see if a value not a number
+// console.log(Number.isNaN(20));
+// console.log(Number.isNaN('20'));
+// console.log(Number.isNaN(+'20'));
+// console.log(Number.isNaN(20 / 0));
+
+// // check to see if a value IS a number
+// console.log(Number.isFinite(20));
+// console.log(Number.isFinite('20'));
+// console.log(Number.isFinite(+'20'));
+// console.log(Number.isFinite(20 / 0));
+
+// // check if a value is an integer
+// console.log(Number.isInteger(20));
+// console.log(Number.isInteger(23.0));
+// console.log(Number.isInteger('20'));
+// console.log(Number.isInteger(+'20'));
+// console.log(Number.isInteger(20 / 0));
+
+// // Math method on Numbers
+// console.log(Math.sqrt(25));
+// // how to work out square root without math.sqrt
+// console.log(25 ** (1 / 2));
+// // how to work out the cubed root
+// console.log(8 ** (1 / 3));
+
+// // work out the max number
+// console.log(Math.max(5, 18, 23, 11, 2));
+// // type coercion occurs with strings
+// console.log(Math.max(5, 18, '23', 11, 2));
+// // doesn't work with  numbers and strings as one value
+// console.log(Math.max(5, 18, '23px', 11, 2));
+
+// // work out the min number
+// console.log(Math.min(5, 18, 23, 11, 2));
+
+// // calculate the radius of a circle with 10 pixels
+// // Pi * the radius squared
+// console.log(Math.PI * Number.parseFloat('10px') ** 2);
+
+// // create random dice roll between 1 and 6
+// console.log(Math.floor(Math.random() * 6) + 1);
+
+// // use above formula to generate two random integers between 2 values
+// const randomInt = (min, max) =>
+//   Math.floor(Math.random() * (max - min) + 1) + min;
+// // 0...1 -> 0...(max-min) -> min...max
+
+// // calculate a random number between 10 and 20
+// console.log(randomInt(10, 20));
+// console.log(randomInt(0, 6));
+
+// // Rounding Integers
+// console.log(Math.round(23.3));
+// console.log(Math.round(23.9));
+
+// console.log(Math.ceil(23.3));
+// console.log(Math.ceil(23.9));
+
+// console.log(Math.floor(23.3));
+// console.log(Math.floor(23.9));
+
+// console.log(Math.trunc(23.3));
+
+// // floor better to use rounds both ways - and +
+// console.log(Math.trunc(-23.3));
+// console.log(Math.floor(-23.3));
+
+// // Rounding decimals
+// // toFixed converts to string , need to convert back to number with + at front
+// console.log((2.7).toFixed(0));
+// console.log((2.7).toFixed(3));
+// console.log((2.345).toFixed(2));
+// console.log(+(2.345).toFixed(2));
+
+// // Remainder operator
+// // 5/2 = 2 remainder 1
+// console.log(5 % 2);
+// console.log(5 / 2); //5 = 2 * 2 + 1
+
+// console.log(8 % 3);
+// console.log(8 / 3); // 8 = 2 * 3 + 2
+
+// // used to check if numbers are even or odd
+// console.log(6 % 2);
+// console.log(6 / 2);
+
+// console.log(7 % 2);
+// console.log(7 / 2);
+
+// const isEven = num => num % 2 === 0;
+// console.log(isEven(8));
+// console.log(isEven(23));
+// console.log(isEven(514));
+
+// labelBalance.addEventListener('click', function () {
+//   [...document.querySelectorAll('.movements__row')].forEach(function (row, i) {
+//     // 0,2,4,6
+//     if (i % 2 === 0) row.style.backgroundColor = 'orangered';
+//     // 0,3,6,9
+//     if (i % 3 === 0) row.style.backgroundColor = 'blue';
+//   });
 // });
 
-// forEach method with maps
-const currencies = new Map([
-  ['USD', 'United States dollar'],
-  ['EUR', 'Euro'],
-  ['GBP', 'Pound sterling'],
-]);
+// // numeric separator ( underscore _) used to separate big numbers to and make it easier for other developers to read
 
-// // must be in this order (value , key , map thats being looped over)
+// const diameter = 287460000000;
+// console.log(diameter);
 
-currencies.forEach(function (value, key, map) {
-  console.log(`${key}: ${value}`);
-});
+// const diameter2 = 287_460_000_000;
+// console.log(diameter2);
 
-// // forEach with a set - first 2 parameters are the same (value = key)
-const currenciesUnique = new Set(['USD', 'GBP', 'USD', 'EUR', 'EUR', 'EUR']);
+// // doesn't work with strings
+// console.log(Number('230_000'));
 
-console.log(currenciesUnique);
-currenciesUnique.forEach(function (value, _, set) {
-  console.log(`${_}: ${value}`);
-});
+// // bigInt - used to store larger numbers then Max_Safe_integer
 
-// convention to use underscore in JavaScript as a throw away character.
+// console.log(Number.MAX_SAFE_INTEGER);
 
-// const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
+// // use n after big number to use begInt
+// console.log(4838430248342043823408394839483204n);
+// console.log(BigInt(4838430248342043));
 
-// _______________________________________________________________
-// coding challenge one
-const dogsJulia = [9, 16, 6, 8, 3];
-const dogsKate = [10, 5, 6, 1, 4];
+// // operations - still work the same except Math. - cant mix bigInt numbers with regular numbers
 
-// my solution
-const checkDogs = function (arr, arr2) {
-  const dogs = arr.slice(1, 3).concat(arr2);
-  console.log(dogs);
-  dogs.forEach(function (val, i) {
-    const type = val < 3 ? `puppy` : 'adult';
-    if (val < 3) {
-      console.log(`Dog number ${i + 1} is still a ${type} 🐶`);
-    } else {
-      console.log(`Dog number ${i + 1} is an ${type}, and is ${val} years old`);
-    }
-  });
-};
-checkDogs(dogsJulia, dogsKate);
+// console.log(1000n + 1000n);
 
-// his method (same result)
+// const huge = 20289830237283728378237n;
+// const num = 23;
+// // console.log(huge * num);// doesn't work
+// console.log(huge * BigInt(num)); // now it works - doesn't work with comparison operator(===) and strings(concat)
 
-const checkDogs2 = function (dogsJulia, dogsKate) {
-  const dogsJuliaCorrected = dogsJulia.slice();
-  dogsJuliaCorrected.splice(0, 1);
-  dogsJuliaCorrected.splice(-2);
-  // dogsJulia.slice(1, 3);
-  const dogs = dogsJuliaCorrected.concat(dogsKate);
-  console.log(dogs);
+// console.log(20n > 15);
+// console.log(20n === 20);
+// console.log(20n == '20');
 
-  dogs.forEach(function (dog, i) {
-    if (dog >= 3) {
-      console.log(`Dog number ${i + 1} is an adult, and is ${dog} years old`);
-    } else {
-      console.log(`Dog number ${i + 1} is still a puppy 🐶`);
-    }
-  });
-};
-// checkDogs([3, 5, 2, 12, 7], [4, 1, 15, 8, 3]);
-checkDogs2([9, 16, 6, 8, 3], [10, 5, 6, 1, 4]);
+// // division - cuts of the decimal part
+// console.log(10n / 3n);
+// console.log(10 / 3);
 
-// Coding challenge 2 - commented out so challenge 3 works
-// const calcAverageHumanAge = function (ages) {
-//   const humanAges = ages.map(age => (age <= 2 ? 2 * age : 16 + age * 4));
-//   const adults = humanAges.filter(age => age >= 18);
-//   console.log(humanAges);
-//   console.log(adults);
+// // Creating Dates
 
-//   const average = adults.reduce((acc, age) => acc + age, 0) / adults.length;
+// // create a date - 4 ways
+// const now = new Date();
+// console.log(now);
 
-//   return average;
+// // can pass a string
+// console.log(new Date('Tue Jan 25 2022 16:46:29'));
+// console.log(new Date('December 24, 2021,'));
+// console.log(new Date(account1.movementsDates[0]));
+
+// // can log (year, month ( 0 based), day, hour, minute,seconds)
+// console.log(new Date(2037, 10, 19, 15, 23, 5));
+// // uses auto correct - changes to next day
+// console.log(new Date(2037, 10, 31));
+// // also takes in milliseconds from the starting date - jan 1 1970
+// console.log(new Date(0));
+// // how to break down into milliseconds - eg 3 milliseconds
+// // 3 milliseconds times hours in day times minute in hour times seconds in minutes times 1000 milliseconds in a second
+// console.log(new Date(3 * 24 * 60 * 60 * 1000));
+
+// // working with dates - methods
+// const future = new Date(2037, 10, 19, 15, 23);
+// console.log(future);
+// console.log(future.getFullYear()); //always use getFullYear not getYear
+// console.log(future.getFullYear());
+// console.log(future.getMonth());
+// console.log(future.getDate());
+// console.log(future.getDay()); //day of the week
+// console.log(future.getMinutes());
+// console.log(future.getSeconds());
+// console.log(future.toISOString()); // follows int standard
+// console.log(future.getTime()); //milliseconds since jan 1 1970 -use result to get date and time
+// console.log(new Date(2142249780000));
+
+// // get current timestamp
+// console.log(Date.now());
+// // manipulate Date data
+// future.setFullYear(2040); //all the above method available to set date
+// console.log(future);
+
+// // OPerations with dates
+// // calculate how many days apart
+
+// const CalcDaysPassed = (date1, date2) =>
+//   Math.abs(date2 - date1) / (1000 * 60 * 60 * 24); //divide by ( 1000 * 60 *60 *24) to get days - use Math.abs so that it doesn' t matter give us a minus
+
+// console.log(CalcDaysPassed(new Date(2037, 3, 14), new Date(2037, 3, 4)));
+
+// // if you need really precise calculations - eg time changes due to day light saving changes use date library like moments.js
+
+// // Intl numbers
+// const num2 = 3884764.23;
+
+// const options = {
+//   style: 'currency', //percent/currency
+//   // unit: 'kilometer-per-hour',
+//   unit: 'mile-per-hour',
+//   currency: 'ZAR',
+//   // useGrouping:true,
 // };
 
-// const avg1 = calcAverageHumanAge([5, 2, 4, 1, 15, 8, 3]);
-// const avg2 = calcAverageHumanAge([16, 6, 10, 5, 6, 1, 4]);
-// console.log(avg1, avg2);
-
-// Coding Challenge 3
-const calcAverageHumanAge = ages =>
-  ages
-    .map(age => (age <= 2 ? 2 * age : 16 + age * 4))
-    .filter(age => age >= 18)
-    .reduce((acc, age, i, arr) => acc + age / arr.length, 0);
-
-const avg1 = calcAverageHumanAge([5, 2, 4, 1, 15, 8, 3]);
-const avg2 = calcAverageHumanAge([16, 6, 10, 5, 6, 1, 4]);
-console.log(avg1, avg2);
-
-// coding challenge 4
-
-const dogs = [
-  { weight: 22, curFood: 250, owners: ['Alice', 'Bob'] },
-  { weight: 8, curFood: 200, owners: ['Matilda'] },
-  { weight: 13, curFood: 275, owners: ['Sarah', 'John'] },
-  { weight: 32, curFood: 340, owners: ['Michael'] },
-];
-
-
-// 1
-dogs.forEach((dog => dog.recFood = Math.trunc(dog.weight ** 0.75 * 28)));
-
-console.log(dogs);
-
-// 2.
-const dogSarah = dogs.find((dog => dog.owners.includes('Sarah')))
-console.log(dogSarah);
-console.log(`Sarah's dog is eating too ${ dogSarah.curFood > dogSarah.recFood ? 'much' : 'little'}`);
-
-
-
-// 3
-const ownersEatTooMuch = dogs.filter(dog => dog.curFood > dog.recFood).flatMap(dog => dog.owners);
-
-console.log(ownersEatTooMuch);
-
-const ownersEatTooLittle = dogs.filter(dog => dog.curFood < dog.recFood).flatMap(dog =>dog.owners);
-
-console.log(ownersEatTooLittle);
-
-// 4.
-console.log(`${ownersEatTooMuch[0]}, ${ownersEatTooMuch[1]} and ${ownersEatTooMuch[2]}'s dogs eat too much! ${ownersEatTooLittle[0]}, ${ownersEatTooLittle[1]} and ${ownersEatTooLittle[2]}'s dogs eat to little!`);
-
-console.log(`${ownersEatTooMuch.join(' and ')}'s dogs eat to much!`);
-console.log(`${ownersEatTooLittle.join(' and ')}'s dogs eat to little!`)
-
-
-// 5.
-console.log(dogs.some(dog => dog.curFood === dog.recFood));
-
-// 6.
-console.log(dogs.some(dog=> dog.curFood > dog.recFood * 0.9 && dog.curFood < dog.recFood * 1.10 ));
-
-
-const dogCheck = dog=> dog.curFood > dog.recFood * 0.9 && dog.curFood < dog.recFood * 1.10
-
-console.log(dogs.some(dogCheck));
-
-// 7.
-console.log(dogs.filter(dogCheck));
-
-// 8.
-const dogsCopy = dogs.slice().sort((a,b)=> a.recFood - b.recFood);
-console.log(dogsCopy);
-
-
-//_________________________________________________________________
-
-// // Data transformations - map(), filter(), reduce()
-
-// // map - returns a new array containing the results of applying an operation on all original array elements
-
-// // filter - returns a new array containing the array elements that passed a specified test condition
-
-// // reduce - boils ( reduces) all array elements down to one single value
-
-// // Map method
-
-const euroToUsd = 1.1;
-
-// // const movementsUsd = movements.map(function(val){
-// //   return val * euroToUsd;
-// // });
-
-// easier way - arrow function
-
-const movementsUsd = movements.map(val => val * euroToUsd);
-
-console.log(movementsUsd);
-
-// filter method
-const deposits = movements.filter(mov => mov > 0);
-console.log(deposits);
-
-// forOf method same result
-const depositFor = [];
-for (const mov of movements) if (mov > 0) depositFor.push(mov);
-console.log(depositFor);
-
-// filter method to extract the withdrawals
-const withdrawals = movements.filter(mov => mov < 0);
-console.log(withdrawals);
-
-// the Reduce method
-// acc = accumulator -> snowball effect through the array
-// (accumulator , value, index, array)
-const balance = movements.reduce(function (acc, val, i, arr) {
-  console.log(`Iteration ${i}: ${acc}`);
-  return acc + val;
-}, 0);
-// 0 at the end is the initial starting value
-console.log(balance);
-
-// forOf loop same result
-let balance2 = 0;
-for (const mov of movements) balance2 += mov;
-console.log(balance2);
-
-// arrow function same result
-const balance3 = movements.reduce((acc, val) => acc + val, 0);
-console.log(balance3);
-
-// maximum value
-const max = movements.reduce(function (acc, val) {
-  if (acc > val) {
-    return acc;
-  } else return val;
-}, movements[0]);
-
-console.log(max);
-
-// one line arrow notation using reduce method to calculate max val
-const max2 = movements.reduce((acc, val) => Math.max(acc, val));
-console.log(max2);
-
-// the find Method
-
-const firstWithdrawal = movements.find(val => val < 0);
-console.log(movements);
-console.log(firstWithdrawal);
-
-console.log(accounts2);
-const account = accounts2.find(val => val.owner === 'Jessica Davis');
-console.log(account);
-
-// forOf method same result (sort of)
-const accountJD = [];
-for (const val of accounts2)
-  if (val.owner === 'Jessica Davis') accountJD.push(val);
-console.log(accountJD);
-
-// Some method
-
-console.log(movements);
-// used for finding conditions
-const anyDeposits = movements.some(value => value > 0);
-console.log(anyDeposits);
-
-// includes method - used to find equality
-console.log(movements.includes(-130));
-// console.log(movements.some(value => value === -130)); - some method to produce the same result.
-
-// Every Method - only if all elements are true it will log true
-console.log(movements.every(value => value > 0));
-// console.log(account4.movements.every(value => value > 0));
-
-// The Flat / map and flatMap methods
-
-const array = [[1, 2, 3], [4, 5, 6], 7, 8];
-console.log(array.flat());
-
-const arrayDeep = [[[1, 2], 3], [4, [5, 6]], 7, 8];
-console.log(arrayDeep.flat());
-
-// flat;
-// const overallBalance = accounts
-//   .map(value => value.movements)
-//   .flat()
-//   .reduce((previousValue, currentValue) => previousValue + currentValue, 0);
-// console.log(overallBalance);
-
-// flatmap;
-// const overallBalance2 = accounts
-//   .flatMap(value => value.movements)
-//   .reduce(((previousValue, currentValue) => previousValue + currentValue, 0));
-// console.log(overallBalance2);
-
-// Sorting arrays
-
-// strings
-const owners = ['Jonas', 'Zach', ' Adam', 'Martha'];
-console.log(owners.sort());
-// mutates the original array so be careful
-console.log(owners);
-
-// numbers -changes into string so wont work the same
-console.log(movements);
-
-// return > 0  - A, B ( keep order)
-// return < 0  - B, A (switch order)
-
-// Ascending order
-// movements.sort((a,b) => {
-//   if(a>b) return 1;
-//   if(a<b)return -1
-// });
-movements.sort((a, b) => a - b);
-console.log(movements);
-
-// movements.sort((a,b)=>{
-//   if(a>b) return -1;
-//   if(a<b) return 1;
-// });
-
-movements.sort((a, b) => b - a);
-console.log(movements);
-
-// more ways of creating and Filling Arrays
-
-const arr4 = [1, 2, 3, 4, 5, 6, 7];
-console.log(new Array(1, 2, 3, 4, 5, 6, 7));
-
-// passing just one argument , creates an empty array the length of the argument eg . (7) creates and empty array thats holds 7 places
-const x = new Array(7);
-console.log(x);
-
-// fill method lets you mutate the original array and fill its empty spaces with one specific value eg x.fill(1);
-// also lets you define a start parameter and end parameter
-x.fill(1, 3, 5);
-console.log(x);
-
-//  can also be applied to any array
-arr4.fill(44, 1, 6);
-console.log(arr4);
-
-// from method
-
-const y = Array.from({ length: 7 }, () => 1);
-console.log(y);
-
-// underscore throw away variable - use callback function like map method
-const z = Array.from({ length: 7 }, (_, i) => i + 1);
-console.log(z);
-
-// 100 random dice rolls
-
-const a = Array.from(
-  { length: 100 },
-  (val, i) => Math.floor(Math.random() * 6) + 1
-);
-console.log(a);
-
-// iterables ( strings, maps, sets, arrays, typedArrays) can be turned into arrays with array.from
-
-// converting a node list into an Array to get access to the array methods( map/ reduce/ etc) - check application event handles.
+// console.log(`US:    `, new Intl.NumberFormat('en-za', options).format(num2));
+// console.log(
+//   `German:    `,
+//   new Intl.NumberFormat('de-DE', options).format(num2)
+// );
+// console.log(
+//   `South Africa:    `,
+//   new Intl.NumberFormat('en-za', options).format(num2)
+// );
+// console.log(
+//   `Navigator:    `,
+//   new Intl.NumberFormat(navigator.language, options).format(num2)
+// );
+
+// // timers
+
+// // using timer to make message appear 5 seconds later
+// // setTimeout(() => console.log('Here is your pizza 🍕'), 5000);
+
+// // creating a timer that takes in arguments in the callback function - use spread operator to access array - setTimeout(arguments),time delay , arg1, arg2,etc.
+// const ingredients = ['olives', 'spinach'];
+
+// const pizzaTimer = setTimeout(
+//   (ing1, ing2) => console.log(`Here is your pizza with ${ing1} and ${ing2}`),
+//   3000,
+//   ...ingredients
+// );
+
+// console.log('waiting...');
+
+// if (ingredients.includes('olives')) clearInterval(pizzaTimer);
+
+// // how to make a clock
+// // setInterval(() => {
+// //   const date = new Date();
+// //   const options = {
+// //     hour:'numeric',
+// //     minute: 'numeric',
+// //     second:'numeric',
+
+// //   };
+// //   console.log(new Intl.DateTimeFormat('en-za',options).format(date));
+
+// // },1000);
